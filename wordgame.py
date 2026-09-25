@@ -203,10 +203,9 @@ def create_new_game(room_id, player_name):
 st.set_page_config(page_title="Classic Scrabble", layout="wide")
 init_db()
 
-# Hyper-strict CSS to eliminate Streamlit's gaps and create a seamless grid
+# Custom CSS for seamless 1:1 square grid
 st.markdown("""
     <style>
-    /* 1. Remove all horizontal column gaps */
     div[data-testid="stHorizontalBlock"],
     .stHorizontalBlock {
         gap: 0px !important;
@@ -214,12 +213,10 @@ st.markdown("""
         padding: 0px !important;
     }
     
-    /* 2. Remove all vertical row gaps inside board wrapper */
     .board-frame div[data-testid="stVerticalBlock"] {
         gap: 0px !important;
     }
 
-    /* 3. Strip column padding and margins */
     div[data-testid="column"],
     .stColumn {
         padding: 0px !important;
@@ -228,14 +225,12 @@ st.markdown("""
         flex: 1 1 0% !important;
     }
 
-    /* 4. Strip element container margins */
     .element-container,
     div[data-testid="element-container"] {
         margin: 0px !important;
         padding: 0px !important;
     }
 
-    /* 5. Force buttons into edge-to-edge square cells */
     div.stButton {
         margin: 0px !important;
         padding: 0px !important;
@@ -261,7 +256,6 @@ st.markdown("""
         transition: all 0.05s ease-in-out !important;
     }
 
-    /* Solid Board Container Outer Frame */
     .board-frame {
         max-width: 630px;
         margin: 0 auto;
@@ -272,7 +266,6 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(0,0,0,0.5);
     }
 
-    /* Hide CSS Marker helper divs */
     .element-container:has(.sq-tw),
     .element-container:has(.sq-dw),
     .element-container:has(.sq-tl),
@@ -284,7 +277,6 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Board Square Types */
     .element-container:has(.sq-tw) + .element-container button {
         background-color: #b81d13 !important;
         color: #ffffff !important;
@@ -311,7 +303,6 @@ st.markdown("""
         color: #40916c !important;
     }
 
-    /* Placed Wooden Scrabble Tiles */
     .element-container:has(.sq-tile) + .element-container button {
         background-color: #f5e6ca !important;
         color: #2c3e50 !important;
@@ -321,7 +312,6 @@ st.markdown("""
         box-shadow: inset 0 -2px 0 #b08968 !important;
     }
 
-    /* Pending Tiles (Active Turn) */
     .element-container:has(.sq-pending) + .element-container button {
         background-color: #ffeaa7 !important;
         color: #d63031 !important;
@@ -331,7 +321,6 @@ st.markdown("""
         box-shadow: inset 0 0 4px #fdcb6e !important;
     }
 
-    /* Wooden Rack Tray */
     .rack-tray {
         background-color: #5c3d2e;
         padding: 10px;
@@ -379,7 +368,7 @@ with st.sidebar:
             st.rerun()
 
     if st.session_state.room_id:
-        if st.button("🔄 Refresh Board"):
+        if st.button("🔄 Manual Refresh"):
             st.rerun()
 
     st.markdown("---")
@@ -398,6 +387,8 @@ if st.session_state.room_id and st.session_state.username:
         st.warning("Game not found.")
     elif game["status"] == "waiting":
         st.info("Waiting for another player to join...")
+        time.sleep(3)
+        st.rerun()
     else:
         # Scoreboard
         cols = st.columns(3)
@@ -411,7 +402,7 @@ if st.session_state.room_id and st.session_state.username:
         if is_my_turn:
             st.success("✨ It's your turn!")
         else:
-            st.warning(f"⏳ Waiting for {current_player} to play...")
+            st.warning(f"⏳ Waiting for {current_player} to play... (Auto-refreshing)")
 
         # --- PLAYER RACK ---
         st.subheader("Your Rack")
@@ -436,7 +427,6 @@ if st.session_state.room_id and st.session_state.username:
         # --- BOARD DISPLAY ---
         st.subheader("The Board")
         
-        # Wrapped in board-frame to lock aspect ratio, grid structure, and width
         st.markdown('<div class="board-frame">', unsafe_allow_html=True)
         for r in range(BOARD_SIZE):
             grid_cols = st.columns(BOARD_SIZE)
@@ -555,3 +545,7 @@ if st.session_state.room_id and st.session_state.username:
                     st.session_state.pending_placements = {}
                     st.session_state.selected_rack_idx = None
                     st.rerun()
+        else:
+            # AUTO-POLLING LOOP (Runs every 3s only when waiting for opponent)
+            time.sleep(3)
+            st.rerun()
